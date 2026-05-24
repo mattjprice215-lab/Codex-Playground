@@ -1,3 +1,5 @@
+"use client";
+
 import { NavIcon } from "./icons";
 
 const groups = [
@@ -7,7 +9,15 @@ const groups = [
   { label: "Tools", items: ["Goals", "Calendar", "Notes"] },
 ];
 
-export function AppShell({ children }: { children: React.ReactNode }) {
+export function AppShell({
+  activePage,
+  children,
+  onNavigate,
+}: {
+  activePage: string;
+  children: React.ReactNode;
+  onNavigate: (page: string) => void;
+}) {
   return (
     <div className="min-h-screen bg-white lg:flex">
       <aside className="border-b border-slate-200 bg-white lg:fixed lg:inset-y-0 lg:left-0 lg:w-56 lg:border-b-0 lg:border-r">
@@ -21,10 +31,15 @@ export function AppShell({ children }: { children: React.ReactNode }) {
               {group.label ? <div className="px-3 pb-2 text-[10px] font-bold uppercase tracking-wider text-slate-400">{group.label}</div> : null}
               <div className="flex gap-1 lg:block lg:space-y-1">
                 {group.items.map((item) => (
-                  <a key={item} className={`flex items-center gap-3 rounded-lg px-3 py-2 text-xs font-medium ${item === "Overview" ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`} href="#">
+                  <button
+                    key={item}
+                    className={`flex w-full items-center gap-3 rounded-lg px-3 py-2 text-left text-xs font-medium ${item === activePage ? "bg-blue-50 text-blue-600" : "text-slate-600 hover:bg-slate-50"}`}
+                    onClick={() => onNavigate(item)}
+                    type="button"
+                  >
                     <NavIcon className="h-4 w-4" />
                     <span className="whitespace-nowrap">{item}</span>
-                  </a>
+                  </button>
                 ))}
               </div>
             </div>
