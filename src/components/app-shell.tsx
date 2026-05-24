@@ -1,6 +1,6 @@
 "use client";
 
-import { NavIcon } from "./icons";
+import { NavIcon, type NavIconName } from "./icons";
 
 const groups = [
   { label: "", items: ["Overview"] },
@@ -8,6 +8,22 @@ const groups = [
   { label: "Data", items: ["All Workouts", "Body Measurements", "Import History", "Data Sources"] },
   { label: "Tools", items: ["Goals", "Calendar", "Notes"] },
 ];
+
+const itemIcons: Record<string, NavIconName> = {
+  Overview: "overview",
+  Training: "training",
+  "Body Metrics": "metrics",
+  "Progress Photos": "photos",
+  Performance: "performance",
+  "PRs & Records": "records",
+  "All Workouts": "workouts",
+  "Body Measurements": "measurements",
+  "Import History": "imports",
+  "Data Sources": "sources",
+  Goals: "goals",
+  Calendar: "calendar",
+  Notes: "notes",
+};
 
 export function AppShell({
   activePage,
@@ -37,7 +53,7 @@ export function AppShell({
                     onClick={() => onNavigate(item)}
                     type="button"
                   >
-                    <NavIcon className="h-4 w-4" />
+                    <NavIcon name={itemIcons[item]} className="h-4 w-4" />
                     <span className="whitespace-nowrap">{item}</span>
                   </button>
                 ))}
