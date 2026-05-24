@@ -13,13 +13,29 @@ const metrics = [
   ["Body Fat %", "14.7 %", "-1.6% vs Apr 12", "text-slate-500"],
 ];
 
-export function Dashboard() {
+const pageSummaries: Record<string, string> = {
+  Overview: "Track. Analyze. Improve.",
+  Training: "Training load, exercise distribution, and weekly workout structure.",
+  "Body Metrics": "Body composition, measurement trends, and source-aware estimates.",
+  "Progress Photos": "Photo timeline and physique comparison placeholders.",
+  Performance: "Strength, volume, recovery, and wearable performance signals.",
+  "PRs & Records": "Recent records, current maxes, and month-over-month progression.",
+  "All Workouts": "Workout history with source, duration, and volume details.",
+  "Body Measurements": "Tape measurements and scan-derived body metrics.",
+  "Import History": "CSV, Excel, and connected-source import audit trail.",
+  "Data Sources": "Source health, sync confidence, and conflict readiness.",
+  Goals: "Goal progress and upcoming milestones.",
+  Calendar: "Training calendar and recovery rhythm.",
+  Notes: "Coach notes, body signals, and training observations.",
+};
+
+export function Dashboard({ activePage = "Overview" }: { activePage?: string }) {
   return (
     <div className="mx-auto max-w-[1720px] px-4 py-4 sm:px-6">
       <header className="mb-4 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
         <div>
-          <h1 className="text-2xl font-bold tracking-tight text-slate-950">Overview</h1>
-          <p className="text-sm text-slate-500">Track. Analyze. Improve.</p>
+          <h1 className="text-2xl font-bold tracking-tight text-slate-950">{activePage}</h1>
+          <p className="text-sm text-slate-500">{pageSummaries[activePage]}</p>
         </div>
         <div className="flex items-center gap-2 text-xs">
           <button className="rounded-lg border border-slate-200 px-4 py-2 font-semibold shadow-card">May 12 - Jun 8, 2024</button>
@@ -28,6 +44,14 @@ export function Dashboard() {
         </div>
       </header>
 
+      {activePage === "Overview" ? <OverviewContent /> : <SectionContent page={activePage} />}
+    </div>
+  );
+}
+
+function OverviewContent() {
+  return (
+    <>
       <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
         {metrics.map(([label, value, delta, color]) => (
           <Card key={label} className="p-4">
@@ -42,69 +66,80 @@ export function Dashboard() {
       <div className="mt-3 grid gap-3 xl:grid-cols-[2fr_1.35fr_1.25fr]">
         <Card className="min-h-[330px]">
           <CardHeader title="Lifting Progression" action={<button className="text-xs text-slate-500">All Exercises ▾</button>} />
-          <div className="h-72 px-3 py-4">
-            <ResponsiveContainer>
-              <AreaChart data={volumeTrend}>
-                <CartesianGrid stroke="#eef2f7" vertical={false} />
-                <XAxis dataKey="day" tick={{ fontSize: 11 }} tickFormatter={(v) => (v === 1 ? "May 12" : v === 15 ? "May 26" : v === 27 ? "Jun 8" : "")} />
-                <YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v) / 1000}K`} />
-                <Tooltip />
-                <Area type="monotone" dataKey="volume" stroke="#2f80ed" fill="#dbeafe" strokeWidth={3} />
-              </AreaChart>
-            </ResponsiveContainer>
-          </div>
+          <div className="h-72 px-3 py-4"><VolumeChart /></div>
         </Card>
-
-        <Card>
-          <CardHeader title="Top Exercises (Volume)" />
-          <div className="grid gap-2 p-4 md:grid-cols-[170px_1fr] xl:grid-cols-1 2xl:grid-cols-[180px_1fr]">
-            <div className="relative h-44">
-              <ResponsiveContainer>
-                <PieChart>
-                  <Pie data={exerciseVolume} dataKey="value" innerRadius={52} outerRadius={78} paddingAngle={2}>
-                    {exerciseVolume.map((entry) => <Cell key={entry.name} fill={entry.color} />)}
-                  </Pie>
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="absolute inset-0 grid place-items-center text-center text-sm font-bold">21,530<br /><span className="text-xs font-normal">kg</span></div>
-            </div>
-            <div className="space-y-2 text-xs">
-              {exerciseVolume.map((item) => (
-                <div key={item.name} className="flex items-center justify-between gap-3">
-                  <span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full" style={{ background: item.color }} />{item.name}</span>
-                  <span className="text-slate-500">{item.value.toLocaleString()} kg</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        </Card>
-
-        <Card>
-          <CardHeader title="Recent Workouts" action={<a className="text-xs font-semibold text-blue-600" href="#">View All</a>} />
-          <div className="divide-y divide-slate-100">
-            {workouts.map((workout) => (
-              <div key={workout.id} className="flex items-center justify-between px-4 py-3 text-xs">
-                <div><div className="font-semibold">{workout.name}</div><div className="mt-1 text-slate-500">{workout.date}</div></div>
-                <div className="text-right"><div className="font-semibold">{workout.totalVolumeKg.toLocaleString()} kg</div><div className="mt-1 text-slate-500">Volume</div></div>
-              </div>
-            ))}
-          </div>
-        </Card>
+        <Card><CardHeader title="Top Exercises (Volume)" /><ExercisePie /></Card>
+        <Card><CardHeader title="Recent Workouts" action={<span className="text-xs font-semibold text-blue-600">View All</span>} /><WorkoutList /></Card>
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1.15fr_1.35fr_1.25fr]">
         <Card><CardHeader title="Body Measurements" action={<button className="text-xs text-slate-500">InBody ▾</button>} /><MeasurementTable /></Card>
         <Card><CardHeader title="Body Composition Trend" /><CompositionChart /></Card>
-        <Card><CardHeader title="Strength Progression" action={<a className="text-xs font-semibold text-blue-600" href="#">View All</a>} /><StrengthTable /></Card>
+        <Card><CardHeader title="Strength Progression" action={<span className="text-xs font-semibold text-blue-600">View All</span>} /><StrengthTable /></Card>
       </div>
 
       <div className="mt-3 grid gap-3 xl:grid-cols-[1.1fr_1.6fr_1.4fr]">
-        <Card><CardHeader title="Data Sources" /><div className="grid gap-2 p-4 sm:grid-cols-2">{sources.map((s) => <div key={s.name} className="rounded-lg border border-slate-200 p-3 text-xs"><div className="flex justify-between font-semibold"><span>{s.name}</span><span className={s.status === "synced" ? "text-emerald-500" : "text-amber-500"}>{s.status}</span></div><div className="mt-1 text-slate-500">Last sync: {s.lastSync}</div></div>)}</div></Card>
-        <Card><CardHeader title="PRs This Month" /><div className="grid gap-2 p-4 sm:grid-cols-4">{prs.map((pr) => <div key={pr.exercise} className="rounded-lg border border-slate-200 p-3 text-xs"><div className="font-semibold">{pr.exercise}</div><div className="mt-1 text-lg font-bold">{pr.value}</div><div className="text-slate-500">{pr.date} · <span className="text-emerald-600">{pr.delta}</span></div></div>)}</div></Card>
-        <Card><CardHeader title="Goals" action={<a className="text-xs font-semibold text-blue-600" href="#">View All</a>} /><div className="space-y-4 p-4">{goals.map((goal) => <div key={goal.label} className="text-xs"><div className="mb-2 flex justify-between font-semibold"><span>{goal.label} {goal.target}{goal.unit}</span><span>{Math.round((goal.current / goal.target) * 100)}%</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }} /></div></div>)}</div></Card>
+        <Card><CardHeader title="Data Sources" /><SourceGrid /></Card>
+        <Card><CardHeader title="PRs This Month" /><PRGrid /></Card>
+        <Card><CardHeader title="Goals" action={<span className="text-xs font-semibold text-blue-600">View All</span>} /><GoalBars /></Card>
+      </div>
+    </>
+  );
+}
+
+function SectionContent({ page }: { page: string }) {
+  const panels = getPanels(page);
+
+  return (
+    <div className="grid gap-3 xl:grid-cols-[1.4fr_1fr]">
+      <Card className="min-h-[360px]">
+        <CardHeader title={panels.primaryTitle} action={<button className="text-xs font-semibold text-blue-600">Export</button>} />
+        {panels.primary}
+      </Card>
+      <div className="grid gap-3">
+        <Card><CardHeader title={panels.secondaryTitle} />{panels.secondary}</Card>
+        <Card><CardHeader title="Source Context" /><SourceGrid compact /></Card>
       </div>
     </div>
   );
+}
+
+function getPanels(page: string) {
+  if (["Training", "Performance"].includes(page)) return { primaryTitle: page === "Training" ? "Training Volume" : "Performance Trend", primary: <div className="h-80 p-4"><VolumeChart /></div>, secondaryTitle: "Recent Workouts", secondary: <WorkoutList /> };
+  if (["Body Metrics", "Body Measurements"].includes(page)) return { primaryTitle: page === "Body Metrics" ? "Composition Trend" : "Measurement History", primary: <CompositionChart />, secondaryTitle: "Measurement Comparison", secondary: <MeasurementTable /> };
+  if (page === "Data Sources") return { primaryTitle: "Connected Sources", primary: <SourceGrid />, secondaryTitle: "Conflict Model", secondary: <div className="space-y-2 p-4 text-xs text-slate-600"><p>Raw measurements are preserved before normalization.</p><p>Dashboard estimates can later prioritize source confidence per metric.</p></div> };
+  if (page === "Goals") return { primaryTitle: "Goal Progress", primary: <GoalBars />, secondaryTitle: "PR Targets", secondary: <PRGrid /> };
+  if (page === "PRs & Records") return { primaryTitle: "Records Board", primary: <PRGrid />, secondaryTitle: "Strength Progression", secondary: <StrengthTable /> };
+  return { primaryTitle: page, primary: <PlaceholderTable page={page} />, secondaryTitle: "Recent Activity", secondary: <WorkoutList /> };
+}
+
+function VolumeChart() {
+  return <ResponsiveContainer><AreaChart data={volumeTrend}><CartesianGrid stroke="#eef2f7" vertical={false} /><XAxis dataKey="day" tick={{ fontSize: 11 }} tickFormatter={(v) => (v === 1 ? "May 12" : v === 15 ? "May 26" : v === 27 ? "Jun 8" : "")} /><YAxis tick={{ fontSize: 11 }} tickFormatter={(v) => `${Number(v) / 1000}K`} /><Tooltip /><Area type="monotone" dataKey="volume" stroke="#2f80ed" fill="#dbeafe" strokeWidth={3} /></AreaChart></ResponsiveContainer>;
+}
+
+function ExercisePie() {
+  return <div className="grid gap-2 p-4 md:grid-cols-[170px_1fr] xl:grid-cols-1 2xl:grid-cols-[180px_1fr]"><div className="relative h-44"><ResponsiveContainer><PieChart><Pie data={exerciseVolume} dataKey="value" innerRadius={52} outerRadius={78} paddingAngle={2}>{exerciseVolume.map((entry) => <Cell key={entry.name} fill={entry.color} />)}</Pie></PieChart></ResponsiveContainer><div className="absolute inset-0 grid place-items-center text-center text-sm font-bold">21,530<br /><span className="text-xs font-normal">kg</span></div></div><div className="space-y-2 text-xs">{exerciseVolume.map((item) => <div key={item.name} className="flex items-center justify-between gap-3"><span className="flex items-center gap-2"><i className="h-2 w-2 rounded-full" style={{ background: item.color }} />{item.name}</span><span className="text-slate-500">{item.value.toLocaleString()} kg</span></div>)}</div></div>;
+}
+
+function WorkoutList() {
+  return <div className="divide-y divide-slate-100">{workouts.map((workout) => <div key={workout.id} className="flex items-center justify-between px-4 py-3 text-xs"><div><div className="font-semibold">{workout.name}</div><div className="mt-1 text-slate-500">{workout.date} · {workout.source}</div></div><div className="text-right font-semibold">{workout.totalVolumeKg.toLocaleString()} kg</div></div>)}</div>;
+}
+
+function SourceGrid({ compact = false }: { compact?: boolean }) {
+  return <div className={`grid gap-2 p-4 text-xs ${compact ? "xl:grid-cols-1" : "sm:grid-cols-2"}`}>{sources.map((s) => <div key={s.name} className="rounded-lg border border-slate-200 p-3"><div className="flex justify-between font-semibold"><span>{s.name}</span><span className={s.status === "synced" ? "text-emerald-600" : "text-amber-600"}>{s.status}</span></div><div className="mt-1 text-slate-500">Last sync: {s.lastSync}</div></div>)}</div>;
+}
+
+function GoalBars() {
+  return <div className="space-y-4 p-4">{goals.map((goal) => <div key={goal.label} className="text-xs"><div className="mb-2 flex justify-between font-semibold"><span>{goal.label} {goal.target}{goal.unit}</span><span>{Math.round((goal.current / goal.target) * 100)}%</span></div><div className="h-2 rounded-full bg-slate-100"><div className="h-2 rounded-full bg-emerald-500" style={{ width: `${Math.min(100, (goal.current / goal.target) * 100)}%` }} /></div></div>)}</div>;
+}
+
+function PRGrid() {
+  return <div className="grid gap-2 p-4 sm:grid-cols-2">{prs.map((pr) => <div key={pr.exercise} className="rounded-lg border border-slate-200 p-3 text-xs"><div className="font-semibold">{pr.exercise}</div><div className="mt-1 text-lg font-bold">{pr.value}</div><div className="text-slate-500">{pr.date} · <span className="text-emerald-600">{pr.delta}</span></div></div>)}</div>;
+}
+
+function PlaceholderTable({ page }: { page: string }) {
+  const rows = page === "Import History" ? [["fitbod_export_june.csv", "CSV", "428 rows"], ["inbody_scan.xlsx", "Excel", "18 rows"], ["apple_health.xml", "Apple Health", "queued"]] : page === "Progress Photos" ? [["Front relaxed", "Jun 8", "Compared"], ["Side profile", "Jun 8", "Compared"], ["Back relaxed", "May 12", "Baseline"]] : page === "Calendar" ? [["Jun 10", "Push Day", "Planned"], ["Jun 11", "Recovery", "Planned"], ["Jun 12", "Lower Body", "Planned"]] : page === "Notes" ? [["Jun 8", "Bench felt fast; shoulder stable", "Training"], ["Jun 7", "Sleep strong, HRV up", "Recovery"], ["Jun 6", "Pull volume slightly high", "Coach"]] : [["Push Day", "Jun 8", "6,250 kg"], ["Pull Day", "Jun 6", "5,210 kg"], ["Leg Day", "Jun 4", "6,100 kg"]];
+  return <table className="w-full text-left text-xs"><thead className="text-slate-500"><tr><th className="px-4 py-2">Item</th><th>Date / Source</th><th>Status</th></tr></thead><tbody>{rows.map((row) => <tr key={row.join("-")} className="border-t border-slate-100"><td className="px-4 py-3 font-semibold">{row[0]}</td><td>{row[1]}</td><td className="text-slate-500">{row[2]}</td></tr>)}</tbody></table>;
 }
 
 function MeasurementTable() {
